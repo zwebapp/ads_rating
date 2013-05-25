@@ -59,6 +59,7 @@ function _uninstall() {
  
   AR::newInstance()->uninstall();
   osc_delete_preference('ads_rating', 'rating');
+  osc_delete_preference('ads_rating', 'open');
 
 }
 
@@ -197,6 +198,27 @@ function voting_item_delete($itemId) {
 /* end Delete Item */
 
 
+
+/* Output functions 
+----------------------------------------------------------------------------*/
+
+function echo_recommended_ads() {
+  
+  if ( 1 != osc_get_preference('ads_rating', 'rating')) return;
+
+  $results = AR::newInstance()->get_predict_best(osc_logged_user_id(), 5);
+
+  if( $results ) {
+    echo "<h2>Recommended ads </h2>";
+    echo "<pre>" . print_r($results, TRUE) . "</pre>";
+  }
+
+
+}
+
+
+
+
     /**************************************************************************
      *                          VOTE ITEMS
      *************************************************************************/
@@ -240,6 +262,7 @@ function voting_item_delete($itemId) {
         $category_id = null;
         $order       = 'desc';
         $num         = 5;
+
         if(isset($array_filters['category_id'])){
             $category_id = $array_filters['category_id'];
         }
@@ -294,11 +317,3 @@ function voting_item_delete($itemId) {
             }
         }
     }
-
-    /**
-     * ADD HOOKS
-     */
-
-    //osc_add_hook('item_detail', 'voting_item_detail');
-    
-    //osc_add_hook('delete_item', 'voting_item_delete');

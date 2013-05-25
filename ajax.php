@@ -48,15 +48,20 @@ if(isset($iVote) && is_numeric($iVote) && isset($itemId) && is_numeric($itemId) 
         
         $open = osc_get_preference('ads_rating', 'open');
         $user = osc_get_preference('user', 'voting');
+
         if($open == 1) {
             if(can_vote($itemId, $userId, $hash)) {
                 AR::newInstance()->insertItemVote($itemId, $userId, $iVote, $hash);
+                
             }
         } else if($user == 1 && is_null($hash) ) {
             if(can_vote($itemId, $userId, $hash)) {
                 AR::newInstance()->insertItemVote($itemId, $userId, $iVote, $hash);
             }
         }
+
+        AR::newInstance()->update_dev_table($userId, $itemId);
+
     }
     // return updated voting
     $item = Item::newInstance()->findByPrimaryKey($itemId);
