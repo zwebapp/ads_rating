@@ -234,12 +234,15 @@
         function getItemRatings($category_id = null, $order = 'desc', $num = 5)
         {
             $sql  = 'SELECT fk_i_item_id as item_id, format(avg(i_value),1) as avg_vote, count(*) as num_votes, '.DB_TABLE_PREFIX.'t_item.fk_i_category_id as category_id ';
+            
             if(!is_null($category_id)) {
                 $sql .= ', '.DB_TABLE_PREFIX.'t_category.fk_i_parent_id as parent_category_id ';
             }
+            
             $sql .= 'FROM '.DB_TABLE_PREFIX.'t_rated_items ';
             $sql .= 'LEFT JOIN '.DB_TABLE_PREFIX.'t_item ON '.DB_TABLE_PREFIX.'t_item.pk_i_id = '.DB_TABLE_PREFIX.'t_rated_items.fk_i_item_id ';
             $sql .= 'LEFT JOIN '.DB_TABLE_PREFIX.'t_category ON '.DB_TABLE_PREFIX.'t_category.pk_i_id = '.DB_TABLE_PREFIX.'t_item.fk_i_category_id ';
+            
             if(!is_null($category_id)) {
                 $sql .= 'WHERE '.DB_TABLE_PREFIX.'t_item.fk_i_category_id = '.$category_id.' ';
                 $sql .= 'OR '.DB_TABLE_PREFIX.'t_category.fk_i_parent_id = '.$category_id.' ';
@@ -247,6 +250,7 @@
             }else{
                 $sql .= 'WHERE ';
             }
+            
             $sql .= ''.DB_TABLE_PREFIX.'t_item.b_active = 1 ';
             $sql .= 'AND '.DB_TABLE_PREFIX.'t_item.b_enabled = 1 ';
             $sql .= 'AND '.DB_TABLE_PREFIX.'t_item.b_spam = 0 ';
@@ -260,6 +264,96 @@
             }
 
             return $result->result();
+        }
+
+        // Get recommended ads per user based on his rating records
+        function get_predict_best($userId, $limit) {
+
+          $sql  = "SELECT d.i_item_id_1 as 'item', ";
+          $sql .= "sum( d.i_sum + d.i_count * r.i_value) / sum(d.i_count) as 'avgrat'";
+          $sql .= "FROM " . DB_TABLE_PREFIX . "t_item i, " . DB_TABLE_PREFIX . "t_rated_itens r, " . DB_TABLE_PREFIX . "t_dev d";
+          $sql .= "WHERE r.fk_i_user_id=" . $userId . "AND d.i_item__id_1 <> r.fk_i_item_id";
+          $sql .= "GROUP BY d.i_item_id";
+          $sql .= "ORDER BY avgrat DESC";
+          $sql .= "LIMIT" $limit;
+
+          $result = $this->dao->query($sql);
+          
+          if( !$result ) {
+            return array() ;
+          }
+
+          return $result->result();
+
+        }
+
+
+        function update_dev_table($userId, $itemId) {
+          
+          $sql  = "SELECT DISTINCT r.fk_i_item_id, r2.i_value − r.i_value as rating_difference";
+          $sql .= "FROM " . DB_TABLE_PREFIX . "t_rated_itens r, " . DB_TABLE_PREFIX . "t_rated_itens r2";
+          $sql .= "WHERE r.fk_i_user_id = " $userId . " AND r2.fk_i_item_id = " . $itemId . " AND r2.fk_i_user_id = " . $userId; 
+
+          $result = $this->dao->query($sql);
+
+          if(! $result ) {
+            return array() ;
+          }
+
+          //For every one of the user ’s rating pairs ,
+          //update the dev table
+          foreach ($result as $row) {
+            
+            $other_item_id = $row["fk_i_item_id"];
+            $rating_difference = $row["rating_difference"]
+
+            $q = "SELECT i_item__id_1 ";
+            $q .= "FROM " . DB_TABLE_PREFIX . "t_dev ";
+            $q .= "WHERE i_item__id_1 = " $itemId . " AND i_item_id_2 = " . $other_item_id;
+
+            if ($this->dao->query($q) > 0  ) { 
+
+              # code...
+            }
+          }
+          while ( $row = mysql_fetch_assoc( $db_result ) ) {
+            
+            $other_itemID = $row [ "itemID" ] ;
+            
+            $rating_difference = $row [ "rating_difference"] ;
+            
+            // if the pair ( $itemID , $other itemID ) is already in the dev table
+            //then we want to update 2 rows .
+        
+            if (mysql_num_rows(mysql_query("SELECT itemID1 FROM dev WHERE itemID1=$itemID AND itemID2=$other itemID" ,$connection ) ) > 0) {
+              
+              $sql = "UPDATE dev SET count=count+1, sum=sum+$rating difference WHERE itemID1=$itemID AND itemID2=$other itemID" ;
+              
+              mysql_query( $sql , $connection ) ;
+              
+              //We only want to update if the items are different
+              
+              if ( $itemID != $other_itemID ) {
+              
+              $sql = "UPDATE dev SET count=count+1, sum=sum−$rating difference WHERE ( itemID1=$other itemID AND itemID2=$itemID)" ;
+              
+              mysql_query( $sql , $connection ) ;
+
+              }
+
+            }
+            else { //we want to insert 2 rows into the dev table
+              $sql = "INSERT INTO dev VALUES ( $itemID ,$other_itemID ,1 , $rating difference )";
+              mysql_query( $sql , $connection ) ;
+              //We only want to insert if the items are different
+              if ( $itemID != $other_itemID ) {
+              
+                $sql = "INSERT INTO dev VALUES ( $other itemID, $itemID , 1 , − $rating difference )" ;
+                mysql_query( $sql , $connection ) ;
+              
+              }
+            }
+          }
         }
 
         /**
@@ -410,5 +504,9 @@
             }
             return false;
         }
+
+
+
+
     }
 ?>
