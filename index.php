@@ -41,6 +41,7 @@ function _install() {
 
   AR::newInstance()->import('ads_rating/struct.sql');
   osc_set_preference('ads_rating', '1', 'rating', 'BOOLEAN');
+  osc_set_preference('ads_rating', '1', 'open', 'BOOLEAN');
 
 }
 
