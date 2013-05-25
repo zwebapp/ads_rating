@@ -1,0 +1,7 @@
+.ico-ads_rating_plugin { background-image: url("../img/split.png") !important; background-position:0px -48px; }
+
+.ico-ads_rating_plugin:hover, .current .ico-ads_rating_plugin{ background-position:0px -0px; }
+
+body.compact .ico-ads_rating_plugin{ background-position:-48px -48px; }
+
+body.compact .ico-ads_rating_plugin:hover, body.compact .current .ico-ads_rating_plugin{ background-position:-48px 0px; }
